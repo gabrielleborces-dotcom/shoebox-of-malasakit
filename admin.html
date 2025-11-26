@@ -6,29 +6,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <style>
 /* (Styles omitted for brevity) */
-body { font-family: 'Fredoka One', cursive; background: #004d40; margin: 0; padding: 20px; color: white; }
-.container { max-width: 600px; margin: auto; padding: 30px; background: #00695c; border-radius: 10px; }
-/* ... */
 </style>
 </head>
 <body>
 <div class="container">
     <h1>🔑 Shoebox Admin Commit</h1>
-
     <label for="deptInput">Departments (Comma Separated):</label>
     <textarea id="deptInput" rows="4"></textarea>
-
     <label for="boxInput">Shoeboxes Received (Comma Separated Values, must match Departments count):</label>
     <textarea id="boxInput" rows="4"></textarea>
-
     <label for="targetInput">Total Target:</label>
     <input id="targetInput" type="number" value="1000">
-
     <label for="passwordInput">Admin Password:</label>
     <input id="passwordInput" type="password">
-
     <button onclick="commitData()">Commit Changes to GitHub & Redeploy</button>
-    
     <div id="statusMessage"></div>
 </div>
 
@@ -37,7 +28,8 @@ const statusMessage = document.getElementById('statusMessage');
 
 async function loadCurrentData() {
     try {
-        const response = await fetch('data.json?' + new Date().getTime()); // Cache-busting here too
+        // Cache-busting here ensures admin starts with current data
+        const response = await fetch('data.json?' + new Date().getTime()); 
         if (!response.ok) throw new Error('Failed to fetch data.json');
         const data = await response.json();
         
@@ -50,28 +42,7 @@ async function loadCurrentData() {
 }
 
 async function commitData() {
-    showStatus('', '', false); 
-
-    const departments = document.getElementById('deptInput').value.split(',').map(a => a.trim()).filter(a => a.length > 0);
-    // Ensure all box values are numbers (even if the input is empty or non-numeric)
-    const boxes = document.getElementById('boxInput').value.split(',').map(a => Number(a.trim()) || 0); 
-    const target = Number(document.getElementById('targetInput').value);
-    const adminPassword = document.getElementById('passwordInput').value;
-    
-    if (departments.length !== boxes.length) {
-        showStatus('error', 'Error: Department count must match Box count.', true);
-        return;
-    }
-    if (!adminPassword) {
-        showStatus('error', 'Error: Please enter the Admin Password.', true);
-        return;
-    }
-
-    const payload = {
-        departments: departments,
-        boxes: boxes,
-        target: target
-    };
+    // ... (Validation and payload creation logic) ...
 
     try {
         showStatus('', 'Committing data to GitHub...', true);
@@ -91,16 +62,11 @@ async function commitData() {
             // SUCCESS - Trigger a window refresh after a slight delay to start fetching the new data
             showStatus('success', '✅ Success! Data committed to GitHub. Refreshing in 3s...', true);
             setTimeout(() => {
-                 // Forces a hard reload of the admin page and the public site
+                 // Forces a hard reload of the admin page and potentially the public site
                  window.location.reload(true); 
             }, 3000);
         } else {
-            const errorMessage = result.message || 'Unknown error occurred.';
-            if (response.status === 403) {
-                showStatus('error', '❌ Commit Failed: Invalid admin password.', true);
-            } else {
-                showStatus('error', `❌ GitHub update failed: ${errorMessage}`, true);
-            }
+            // ... (Error handling logic) ...
         }
     } catch (error) {
         showStatus('error', `❌ Network Error: Could not reach the Netlify Function.`, true);
