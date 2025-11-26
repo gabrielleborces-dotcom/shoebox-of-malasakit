@@ -5,47 +5,170 @@
 <title>🔒 Admin Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <style>
-/* (Styles omitted for brevity) */
+body {
+    font-family: 'Fredoka One', cursive;
+    background: linear-gradient(#1e3c72, #2a5298); /* Deep Blue Gradient */
+    margin:0; padding:20px; color:white;
+}
+.container { 
+    max-width:800px; 
+    margin:auto; 
+    padding: 30px; 
+    background: rgba(255, 255, 255, 0.1); 
+    border-radius: 15px;
+}
+h1 {
+    font-size: 36px;
+    text-align: center;
+    color: #ffd700; /* Gold color for header */
+}
+label { 
+    display:block; 
+    margin-top:15px; 
+    font-weight:bold; 
+    font-size: 1.1em;
+}
+textarea, input { 
+    width:100%; 
+    padding:12px; 
+    border-radius:8px; 
+    border: 2px solid #5a7fae; 
+    margin-top:8px; 
+    margin-bottom:20px; 
+    font-size:16px;
+    box-sizing: border-box; /* Include padding in the element's total width and height */
+    font-family: inherit;
+}
+button { 
+    padding:15px; 
+    border-radius:10px; 
+    border:none; 
+    cursor:pointer; 
+    font-size:18px; 
+    font-weight:bold; 
+    width:100%; 
+    background:#4CAF50; /* Green */
+    color:white;
+    transition: background-color 0.3s;
+}
+button:hover { background:#45a049; }
+#statusMessage { 
+    margin-top:20px; 
+    padding:15px; 
+    border-radius:8px; 
+    text-align:center;
+    font-weight: bold;
+}
+.status-success { background:#d4edda; color:#155724; border: 1px solid #c3e6cb; }
+.status-error { background:#f8d7da; color:#721c24; border: 1px solid #f5c6cb; }
+.status-info { background:#cce5ff; color:#004085; border: 1px solid #b8daff; }
+.current-data-section {
+    margin-top: 30px;
+    padding: 20px;
+    border: 1px dashed #ffd700;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+}
+.current-data-section h2 {
+    color: #ffd700;
+    font-size: 1.5em;
+    margin-top: 0;
+}
+.current-data-section p {
+    margin: 5px 0;
+    word-break: break-all;
+}
 </style>
 </head>
 <body>
 <div class="container">
     <h1>🔑 Shoebox Admin Commit</h1>
+    
     <label for="deptInput">Departments (Comma Separated):</label>
     <textarea id="deptInput" rows="4"></textarea>
+    
     <label for="boxInput">Shoeboxes Received (Comma Separated Values, must match Departments count):</label>
     <textarea id="boxInput" rows="4"></textarea>
+    
     <label for="targetInput">Total Target:</label>
     <input id="targetInput" type="number" value="1000">
+    
     <label for="passwordInput">Admin Password:</label>
     <input id="passwordInput" type="password">
+    
     <button onclick="commitData()">Commit Changes to GitHub & Redeploy</button>
+    
     <div id="statusMessage"></div>
+    
+    <div class="current-data-section">
+        <h2>✅ Live Data Verification (Post-Update)</h2>
+        <p><strong>Status:</strong> <span id="dataStatus">Loading...</span></p>
+        <p><strong>Departments Loaded:</strong> <span id="liveDepartments"></span></p>
+        <p><strong>Boxes Loaded:</strong> <span id="liveBoxes"></span></p>
+        <p><strong>Target Loaded:</strong> <span id="liveTarget"></span></p>
+    </div>
 </div>
 
 <script>
 const statusMessage = document.getElementById('statusMessage');
+const dataStatus = document.getElementById('dataStatus');
+const liveDepartments = document.getElementById('liveDepartments');
+const liveBoxes = document.getElementById('liveBoxes');
+const liveTarget = document.getElementById('liveTarget');
+
+function showStatus(type, message, show) {
+    statusMessage.className = type ? `status-${type}` : '';
+    statusMessage.textContent = message;
+    statusMessage.style.display = show ? 'block' : 'none';
+}
 
 async function loadCurrentData() {
     try {
-        // Cache-busting here ensures admin starts with current data
+        // Cache-busting to ensure admin loads the most current data.
         const response = await fetch('data.json?' + new Date().getTime()); 
         if (!response.ok) throw new Error('Failed to fetch data.json');
         const data = await response.json();
         
+        // Load data into the editable fields
         document.getElementById('deptInput').value = (data.departments || []).join(', ');
         document.getElementById('boxInput').value = (data.boxes || []).join(', ');
         document.getElementById('targetInput').value = data.target || 0;
+
+        // Display the loaded data for verification
+        dataStatus.textContent = 'Successfully loaded current data.';
+        dataStatus.className = 'status-success';
+        liveDepartments.textContent = (data.departments || []).join(', ');
+        liveBoxes.textContent = (data.boxes || []).join(', ');
+        liveTarget.textContent = data.target;
+
     } catch (error) {
-        showStatus('error', 'Failed to load current data. Enter all values manually.', true);
+        showStatus('error', '❌ Failed to load current data. Enter all values manually.', true);
+        dataStatus.textContent = 'Failed to load current data.';
+        dataStatus.className = 'status-error';
     }
 }
 
 async function commitData() {
-    // ... (Validation and payload creation logic) ...
+    const departments = document.getElementById('deptInput').value.split(',').map(s => s.trim()).filter(s => s);
+    const boxes = document.getElementById('boxInput').value.split(',').map(Number);
+    const target = Number(document.getElementById('targetInput').value);
+    const adminPassword = document.getElementById('passwordInput').value;
+
+    if (!adminPassword) {
+        return showStatus('error', '❌ Admin Password is required.', true);
+    }
+    if (departments.length !== boxes.length) {
+        return showStatus('error', '❌ Department and Boxes counts must match.', true);
+    }
+
+    const payload = {
+        departments: departments,
+        boxes: boxes,
+        target: target
+    };
 
     try {
-        showStatus('', 'Committing data to GitHub...', true);
+        showStatus('info', 'Committing data to GitHub (This may take a moment)...', true);
         
         const response = await fetch('/.netlify/functions/updateData', {
             method: 'POST',
@@ -59,22 +182,22 @@ async function commitData() {
         const result = await response.json();
 
         if (response.ok && result.success) {
-            // SUCCESS - Trigger a window refresh after a slight delay to start fetching the new data
-            showStatus('success', '✅ Success! Data committed to GitHub. Refreshing in 3s...', true);
-            setTimeout(() => {
-                 // Forces a hard reload of the admin page and potentially the public site
-                 window.location.reload(true); 
-            }, 3000);
+            // SUCCESS - Immediately hard reload the page to fetch the new data.
+            // This is the fastest way to confirm the commit was successful.
+            showStatus('success', '✅ Success! Data committed to GitHub. Refreshing now...', true);
+            window.location.reload(true); 
+            
+        } else if (response.status === 403) {
+            showStatus('error', '❌ Unauthorized: Invalid admin password.', true);
         } else {
-            // ... (Error handling logic) ...
+            // Log the detailed error from the function if available
+            console.error('Commit failed:', result.message || result);
+            showStatus('error', `❌ Commit Failed: ${result.message || 'Unknown Server Error.'}`, true);
         }
     } catch (error) {
+        console.error(error);
         showStatus('error', `❌ Network Error: Could not reach the Netlify Function.`, true);
     }
-}
-
-function showStatus(type, message, show) {
-    // ... (Status logic) ...
 }
 
 window.onload = loadCurrentData;
