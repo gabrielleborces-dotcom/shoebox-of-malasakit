@@ -23,11 +23,11 @@ button:hover { background:#2e7d32; }
 <h1 style="text-align:center; font-family:'Mountains of Christmas', cursive; font-size:48px;">🎅 2025 Ginebra Shoebox Dashboard 🎄</h1>
 
 <label>Departments:</label>
-<textarea id="deptInput">HR, Finance, Logistics, Sales, IT, Marketing, Admin, Customer Service, Procurement, R&D</textarea>
+<textarea id="deptInput"></textarea>
 <label>Shoeboxes Received:</label>
-<textarea id="boxInput">120, 95, 160, 180, 140, 100, 80, 110, 70, 90</textarea>
+<textarea id="boxInput"></textarea>
 <label>Total Target:</label>
-<input id="targetInput" type="number" value="1500">
+<input id="targetInput" type="number">
 <button onclick="updateData()">Update Dashboard</button>
 <button onclick="exportPNG()">📸 Export PNG</button>
 <button onclick="exportGIF()">🎬 Export Animated GIF</button>
@@ -39,9 +39,10 @@ button:hover { background:#2e7d32; }
 const canvas=document.getElementById('dashboardCanvas');
 const ctx=canvas.getContext('2d');
 
-let departments=["HR","Finance","Logistics","Sales","IT","Marketing","Admin","Customer Service","Procurement","R&D"];
-let boxes=[120,95,160,180,140,100,80,110,70,90];
-let target=1500;
+// Variables initialized to empty/zero, will be populated by loadData()
+let departments=[];
+let boxes=[];
+let target=0;
 
 const pastelColors=["#FFB3BA","#FFDFBA","#FFFFBA","#BAFFC9","#BAE1FF","#E3BAFF","#FFCFF0","#C7F0FF"];
 const icons=["🎁","🎄","⛄","🔔","🧦","🕯️","❄️","🍪","🧸","🛷"];
@@ -190,7 +191,7 @@ function drawTube(){
     if(tubeGradientOffset>tubeWidth) tubeGradientOffset=0;
 
     // Sparkles
-    if(!sparkles.length){
+    if(!sparkles.length && totalBoxes > 0){ // Only initialize if there is content
         for(let i=0;i<25;i++){
             sparkles.push({x:Math.random()*tubeWidth, y:Math.random()*fillHeight, radius:1+Math.random()*2, alpha:Math.random()*0.6+0.3, delta:Math.random()*0.02+0.01});
         }
@@ -207,12 +208,13 @@ function drawTube(){
     ctx.restore();
 
     // Target line
-    const targetY=tubeY+tubeHeight-(tubeHeight*target/target);
+    const effectiveTarget = target > 0 ? target : 1; 
+    const targetY=tubeY+tubeHeight-(tubeHeight*effectiveTarget/effectiveTarget); 
     ctx.strokeStyle="#ffeb3b";
     ctx.lineWidth=4;
     ctx.beginPath();
-    ctx.moveTo(tubeX-10,targetY);
-    ctx.lineTo(tubeX+tubeWidth+10,targetY);
+    ctx.moveTo(tubeX-10,tubeY); // Target line is at tubeY
+    ctx.lineTo(tubeX+tubeWidth+10,tubeY);
     ctx.stroke();
 
     // Label
@@ -222,8 +224,38 @@ function drawTube(){
     ctx.fillText(totalBoxes+" / "+target, tubeX+tubeWidth/2, tubeY+tubeHeight+40);
 }
 
+// ---------------- Data Loading Function ----------------
+async function loadData() {
+    try {
+        // --- THIS LINE IS THE KEY FIX ---
+        const response = await fetch('data.json');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+
+        // Update global variables
+        departments = data.departments || [];
+        boxes = data.boxes || [];
+        target = data.target || 0;
+        
+        // Update the input fields with the new data from data.json (for local edits)
+        document.getElementById("deptInput").value = departments.join(', ');
+        document.getElementById("boxInput").value = boxes.join(', ');
+        document.getElementById("targetInput").value = target;
+
+    } catch (error) {
+        console.error("Failed to load data.json. Using current local data.", error);
+    }
+}
+
+
 // ---------------- Main Draw ----------------
 function drawDashboard(){
+    // Ensure we only draw if data has been loaded or is available
+    if (departments.length === 0 && boxes.length === 0 && target === 0) {
+        // If data hasn't loaded yet, try again on the next frame (or use local data if loading failed)
+        // We allow the loop to continue even if initial load failed, relying on the local variables
+        // that are set to 0/empty array if the fetch fails.
+    }
     drawBackground();
     drawSnow();
     drawDepartmentChart();
@@ -233,6 +265,7 @@ function drawDashboard(){
 
 // ---------------- Input & Export ----------------
 function updateData(){
+    // This function now only handles local updates from the input fields
     departments=document.getElementById("deptInput").value.split(",").map(a=>a.trim());
     boxes=document.getElementById("boxInput").value.split(",").map(a=>Number(a));
     target=Number(document.getElementById("targetInput").value);
@@ -262,7 +295,15 @@ function exportGIF(){
     captureFrame();
 }
 
-drawDashboard();
+// Initial setup function
+async function initializeDashboard() {
+    // 1. Fetch the latest shared data from data.json
+    await loadData();
+    // 2. Start the drawing loop
+    drawDashboard();
+}
+
+initializeDashboard(); // Start the process by fetching data first
 </script>
 </body>
 </html>
