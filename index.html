@@ -39,7 +39,7 @@ button:hover { background:#2e7d32; }
 const canvas=document.getElementById('dashboardCanvas');
 const ctx=canvas.getContext('2d');
 
-// Variables initialized to empty/zero, will be populated by loadData()
+// --- Key Change: Variables initialized to empty/zero, will be populated by loadData() ---
 let departments=[];
 let boxes=[];
 let target=0;
@@ -224,10 +224,9 @@ function drawTube(){
     ctx.fillText(totalBoxes+" / "+target, tubeX+tubeWidth/2, tubeY+tubeHeight+40);
 }
 
-// ---------------- Data Loading Function ----------------
+// ---------------- Data Loading Function (Async/Await) ----------------
 async function loadData() {
     try {
-        // --- THIS LINE IS THE KEY FIX ---
         const response = await fetch('data.json');
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
@@ -250,12 +249,7 @@ async function loadData() {
 
 // ---------------- Main Draw ----------------
 function drawDashboard(){
-    // Ensure we only draw if data has been loaded or is available
-    if (departments.length === 0 && boxes.length === 0 && target === 0) {
-        // If data hasn't loaded yet, try again on the next frame (or use local data if loading failed)
-        // We allow the loop to continue even if initial load failed, relying on the local variables
-        // that are set to 0/empty array if the fetch fails.
-    }
+    // We allow drawing even if data load failed (it uses the empty defaults)
     drawBackground();
     drawSnow();
     drawDepartmentChart();
@@ -295,7 +289,7 @@ function exportGIF(){
     captureFrame();
 }
 
-// Initial setup function
+// --- Initial setup function: Ensures data is loaded BEFORE drawing starts ---
 async function initializeDashboard() {
     // 1. Fetch the latest shared data from data.json
     await loadData();
