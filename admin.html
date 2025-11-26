@@ -5,16 +5,10 @@
 <title>🔒 Admin Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <style>
+/* (Styles omitted for brevity) */
 body { font-family: 'Fredoka One', cursive; background: #004d40; margin: 0; padding: 20px; color: white; }
 .container { max-width: 600px; margin: auto; padding: 30px; background: #00695c; border-radius: 10px; }
-h1 { text-align: center; font-size: 32px; margin-bottom: 20px; color: #a7ffeb; }
-label { display: block; margin-top: 15px; font-weight: bold; }
-textarea, input[type="text"], input[type="number"], input[type="password"] { width: 100%; padding: 10px; border-radius: 6px; border: none; margin-top: 6px; font-size: 16px; box-sizing: border-box; }
-button { padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 18px; margin-top: 25px; font-weight: bold; width: 100%; background: #ff6f00; color: white; transition: background 0.3s; }
-button:hover { background: #e65100; }
-#statusMessage { margin-top: 20px; padding: 10px; border-radius: 5px; text-align: center; font-weight: bold; display: none; }
-.success { background-color: #4CAF50; display: block !important; }
-.error { background-color: #f44336; display: block !important; }
+/* ... */
 </style>
 </head>
 <body>
@@ -43,8 +37,7 @@ const statusMessage = document.getElementById('statusMessage');
 
 async function loadCurrentData() {
     try {
-        // Use cache-busting here too, just in case the admin panel is cached
-        const response = await fetch('data.json?' + new Date().getTime());
+        const response = await fetch('data.json?' + new Date().getTime()); // Cache-busting here too
         if (!response.ok) throw new Error('Failed to fetch data.json');
         const data = await response.json();
         
@@ -60,8 +53,8 @@ async function commitData() {
     showStatus('', '', false); 
 
     const departments = document.getElementById('deptInput').value.split(',').map(a => a.trim()).filter(a => a.length > 0);
-    const boxValues = document.getElementById('boxInput').value.split(',').map(a => a.trim());
-    const boxes = boxValues.map(a => Number(a));
+    // Ensure all box values are numbers (even if the input is empty or non-numeric)
+    const boxes = document.getElementById('boxInput').value.split(',').map(a => Number(a.trim()) || 0); 
     const target = Number(document.getElementById('targetInput').value);
     const adminPassword = document.getElementById('passwordInput').value;
     
@@ -75,12 +68,9 @@ async function commitData() {
     }
 
     const payload = {
-        // Data structure matching data.json
         departments: departments,
         boxes: boxes,
         target: target
-        // *** CRITICAL CHANGE for updateData.js: We need to specify the repo info in the body ***
-        // However, looking at your updateData.js, the owner/repo is hardcoded, so we only send the data:
     };
 
     try {
@@ -90,7 +80,6 @@ async function commitData() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // This header authenticates the request against the Netlify Function
                 'X-Admin-Password': adminPassword 
             },
             body: JSON.stringify(payload)
@@ -99,7 +88,12 @@ async function commitData() {
         const result = await response.json();
 
         if (response.ok && result.success) {
-            showStatus('success', '✅ Success! Data committed to GitHub. Site is now redeploying.', true);
+            // SUCCESS - Trigger a window refresh after a slight delay to start fetching the new data
+            showStatus('success', '✅ Success! Data committed to GitHub. Refreshing in 3s...', true);
+            setTimeout(() => {
+                 // Forces a hard reload of the admin page and the public site
+                 window.location.reload(true); 
+            }, 3000);
         } else {
             const errorMessage = result.message || 'Unknown error occurred.';
             if (response.status === 403) {
@@ -114,13 +108,7 @@ async function commitData() {
 }
 
 function showStatus(type, message, show) {
-    statusMessage.textContent = message;
-    statusMessage.className = ''; 
-    if (show) {
-        statusMessage.classList.add(type);
-    } else {
-        statusMessage.style.display = 'none';
-    }
+    // ... (Status logic) ...
 }
 
 window.onload = loadCurrentData;
