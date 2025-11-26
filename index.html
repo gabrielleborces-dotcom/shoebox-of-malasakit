@@ -80,10 +80,10 @@ button:hover { background:#2e7d32; }
 var canvas;
 var ctx;
 
-let departments = []; // Will be loaded from data.json or initial v29 values
-let boxes = []; // Will be loaded from data.json or initial v29 values
-let target = 1500; // Will be loaded from data.json or initial v29 value
-let totalBoxes = 0; // Calculated sum of boxes
+let departments = []; 
+let boxes = []; 
+let target = 1500; 
+let totalBoxes = 0; 
 
 // Department chart colors from v29 (more Christmassy/Pastel)
 const pastelColors=["#FFB3BA","#FFDFBA","#FFFFBA","#BAFFC9","#BAE1FF","#E3BAFF","#FFCFF0","#C7F0FF"];
@@ -169,13 +169,14 @@ function drawDepartmentChart(){
     const rowHeight = chartHeight/2;
     const maxBox=Math.max(...boxes, target * 0.1); // Use target * 0.1 as a minimum for scaling
 
-    // Graph Title
-    ctx.font="28px Mountains of Christmas";
+    // Graph Title: Use Mountains of Christmas
+    ctx.font="32px Mountains of Christmas"; // Slightly larger
     ctx.fillStyle="white";
     ctx.textAlign="center";
     ctx.fillText("2025 Ginebra Shoebox of Malasakit Collection", chartX+chartWidth/2, chartY-40);
 
-    ctx.font="20px Fredoka One";
+    // Labels/Values: Use Fredoka One for fun style
+    ctx.font="24px Fredoka One"; // Slightly larger
     ctx.textAlign="center";
 
     for(let row=0; row<2; row++){
@@ -201,6 +202,7 @@ function drawDepartmentChart(){
 
             // Draw value above bar
             ctx.fillStyle="white";
+            ctx.font="28px Fredoka One"; // Value font
             ctx.fillText(b, x+barWidth/2, y-10);
 
             // Draw department label below the bars, diagonal
@@ -208,6 +210,7 @@ function drawDepartmentChart(){
             ctx.translate(x + barWidth/2, yOffset + rowHeight + 30); // move below axis
             ctx.rotate(-Math.PI/6); // rotate 30 degrees
             ctx.fillStyle="white";
+            ctx.font="20px Fredoka One"; // Label font
             ctx.fillText(icons[i % icons.length]+" "+departments[i], 0, 0);
             ctx.restore();
         }
@@ -235,8 +238,8 @@ function drawTube(){
     ctx.lineWidth=4;
     ctx.stroke();
 
-    // Overall Progress Title (moved from index.html)
-    ctx.font = "28px Mountains of Christmas";
+    // Overall Progress Title: Use Mountains of Christmas
+    ctx.font = "32px Mountains of Christmas"; // Slightly larger
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
     ctx.fillText("Overall Progress", tubeX + tubeWidth / 2, tubeY - 40);
@@ -286,8 +289,8 @@ function drawTube(){
     ctx.lineTo(tubeX + tubeWidth + 10, targetY);
     ctx.stroke();
 
-    // Label
-    ctx.font="28px Fredoka One";
+    // Label: Use Fredoka One
+    ctx.font="32px Fredoka One"; // Slightly larger
     ctx.fillStyle="white";
     ctx.textAlign="center";
     ctx.fillText(totalBoxes+" / "+target, tubeX+tubeWidth/2, tubeY+tubeHeight+40);
@@ -320,7 +323,6 @@ function exportPNG(){
 }
 
 function exportGIF(){
-    // The GIF creation function is working as intended.
     const gif=new GIF({workers:2,quality:10,width:canvas.width,height:canvas.height});
     let frames=0;
     const captureFrame=()=>{
