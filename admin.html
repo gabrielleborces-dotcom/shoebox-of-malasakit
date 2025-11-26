@@ -1,33 +1,190 @@
-{
-  "departments": [
-    "HR",
-    "FIN",
-    "LOG",
-    "MFG",
-    "BPG",
-    "IT",
-    "AUD",
-    "NAT. SALES",
-    "S&M",
-    "MKTG",
-    "MSG",
-    "GMA",
-    "KAG"
-  ],
-  "boxes": [
-    2,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    10,
-    22,
-    0,
-    0,
-    0,
-    70
-  ],
-  "target": 1000
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>🔒 Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+body {
+    font-family: 'Fredoka One', cursive;
+    background: #004d40; /* Dark teal for a serious admin look */
+    margin: 0; padding: 20px; color: white;
 }
+.container { 
+    max-width: 600px; 
+    margin: auto; 
+    padding: 30px;
+    background: #00695c; /* Slightly lighter teal */
+    border-radius: 10px;
+}
+h1 { 
+    text-align: center; 
+    font-size: 32px; 
+    margin-bottom: 20px; 
+    color: #a7ffeb; /* Light contrast color */
+}
+label { 
+    display: block; 
+    margin-top: 15px; 
+    font-weight: bold;
+}
+textarea, input[type="text"], input[type="number"], input[type="password"] { 
+    width: 100%; 
+    padding: 10px; 
+    border-radius: 6px; 
+    border: none; 
+    margin-top: 6px; 
+    font-size: 16px; 
+    box-sizing: border-box;
+}
+button { 
+    padding: 12px; 
+    border-radius: 8px; 
+    border: none; 
+    cursor: pointer; 
+    font-size: 18px; 
+    margin-top: 25px; 
+    font-weight: bold; 
+    width: 100%; 
+    background: #ff6f00; /* Bright orange for commit action */
+    color: white;
+    transition: background 0.3s;
+}
+button:hover { 
+    background: #e65100; 
+}
+#statusMessage {
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: bold;
+    display: none;
+}
+.success { background-color: #4CAF50; display: block !important; }
+.error { background-color: #f44336; display: block !important; }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>🔑 Shoebox Admin Commit</h1>
+
+    <label for="deptInput">Departments (Comma Separated):</label>
+    <textarea id="deptInput" rows="4"></textarea>
+
+    <label for="boxInput">Shoeboxes Received (Comma Separated Values, must match Departments count):</label>
+    <textarea id="boxInput" rows="4"></textarea>
+
+    <label for="targetInput">Total Target:</label>
+    <input id="targetInput" type="number" value="1000">
+
+    <label for="passwordInput">Admin Password:</label>
+    <input id="passwordInput" type="password">
+
+    <button onclick="commitData()">Commit Changes to GitHub & Redeploy</button>
+    
+    <div id="statusMessage"></div>
+</div>
+
+<script>
+const statusMessage = document.getElementById('statusMessage');
+
+// --- 1. Load Current Data from data.json ---
+async function loadCurrentData() {
+    try {
+        const response = await fetch('data.json');
+        if (!response.ok) throw new Error('Failed to fetch data.json');
+        const data = await response.json();
+        
+        // Populate the input fields with the current data
+        document.getElementById('deptInput').value = (data.departments || []).join(', ');
+        document.getElementById('boxInput').value = (data.boxes || []).join(', ');
+        document.getElementById('targetInput').value = data.target || 0;
+
+        console.log("Current data loaded successfully.");
+    } catch (error) {
+        console.error("Error loading data:", error);
+        showStatus('error', 'Failed to load current data from data.json. Enter all values manually.', false);
+    }
+}
+
+// --- 2. Commit Data via Netlify Function ---
+async function commitData() {
+    // Clear previous status
+    showStatus('', '', false); 
+
+    const departments = document.getElementById('deptInput').value.split(',').map(a => a.trim()).filter(a => a.length > 0);
+    const boxValues = document.getElementById('boxInput').value.split(',').map(a => a.trim());
+    const boxes = boxValues.map(a => {
+        const num = Number(a);
+        return isNaN(num) ? 0 : num; // Ensure conversion to number, default to 0 on failure
+    });
+    const target = Number(document.getElementById('targetInput').value);
+    const adminPassword = document.getElementById('passwordInput').value;
+    
+    // Simple validation
+    if (departments.length !== boxes.length) {
+        showStatus('error', 'Error: Department count must match Box count.', true);
+        return;
+    }
+    if (!adminPassword) {
+        showStatus('error', 'Error: Please enter the Admin Password.', true);
+        return;
+    }
+
+    const payload = {
+        departments: departments,
+        boxes: boxes,
+        target: target
+    };
+
+    // The netlify/functions/updateData.js expects this structure, which is passed in event.body
+    try {
+        showStatus('', 'Committing data to GitHub...', true);
+        
+        const response = await fetch('/.netlify/functions/updateData', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // This header name must match what the Netlify function is looking for
+                'X-Admin-Password': adminPassword 
+            },
+            // The function expects the updated data in the body
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            showStatus('success', '✅ Success! Data committed to GitHub. Site is now redeploying.', true);
+        } else {
+            const errorMessage = result.message || 'Unknown error occurred.';
+            // The Netlify function explicitly returns 403 on password failure
+            if (response.status === 403) {
+                showStatus('error', '❌ Commit Failed: Invalid admin password.', true);
+            } else {
+                showStatus('error', `❌ GitHub update failed: ${errorMessage}`, true);
+            }
+        }
+    } catch (error) {
+        console.error("Commit error:", error);
+        showStatus('error', `❌ Network Error: Could not reach the Netlify Function.`, true);
+    }
+}
+
+// --- Helper for Status Messages ---
+function showStatus(type, message, show) {
+    statusMessage.textContent = message;
+    statusMessage.className = ''; // Clear existing classes
+    if (show) {
+        statusMessage.classList.add(type);
+    } else {
+        statusMessage.style.display = 'none';
+    }
+}
+
+// Initialize on page load
+window.onload = loadCurrentData;
+</script>
+</body>
+</html>
