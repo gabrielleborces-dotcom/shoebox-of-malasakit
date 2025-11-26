@@ -24,7 +24,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // 2. Setup GitHub Connection (Hardcoded values confirmed from previous files)
+    // 2. Setup GitHub Connection
     const token = process.env.GITHUB_PAT;
     const owner = "gabrielleborces-dotcom";
     const repo = "shoebox-of-malasakit";
@@ -38,39 +38,38 @@ exports.handler = async (event, context) => {
     
     const octokit = new Octokit({ auth: token });
 
-    // 3. Get current SHA of data.json
-    let fileData;
+    // 3. Get current SHA of data.json (or null if it doesn't exist)
+    let sha = undefined;
     try {
         const { data } = await octokit.repos.getContent({
           owner,
           repo,
           path: "data.json",
         });
-        fileData = data;
+        sha = data.sha;
     } catch (getContentError) {
-        // If file doesn't exist, fileData will be undefined, but we need to handle Octokit throwing 404
+        // If the file is not found (404), Octokit throws an error, we catch it and proceed with sha = undefined
         if (getContentError.status !== 404) {
              throw getContentError;
         }
-        // If 404, fileData remains undefined, which means sha will be null for createOrUpdateFileContents
     }
 
 
     // 4. Update or Create the File
-    await octokit.repos.createOrUpdateFileContents({
+    const { data: commitData } = await octokit.repos.createOrUpdateFileContents({
       owner,
       repo,
       path: "data.json",
-      message: "Update via Netlify admin panel",
-      // Convert the JSON payload back to a base64 string
+      message: "Update data.json via Netlify admin panel",
+      // Convert the JSON payload back to a base64 string, formatted for readability
       content: Buffer.from(JSON.stringify(updatedData, null, 2)).toString("base64"),
-      // If fileData exists, pass the SHA to ensure we don't overwrite concurrent changes
-      sha: fileData ? fileData.sha : undefined,
+      // sha is required for updates, optional for creation
+      sha: sha, 
     });
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true, message: "Data updated successfully! Site redeployment triggered." }),
+      body: JSON.stringify({ success: true, message: "Data updated successfully!", update: commitData }),
     };
   } catch (err) {
     console.error("GitHub/Server Error:", err);
