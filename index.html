@@ -9,7 +9,7 @@
 /* Consolidated CSS styles */
 body {
     font-family: 'Fredoka One', cursive;
-    background: linear-gradient(#c62828, #8e0000); /* Use v29's gradient background */
+    background: linear-gradient(#c62828, #8e0000); 
     margin:0; padding:20px; color:white;
 }
 label { 
@@ -19,7 +19,6 @@ label {
     font-family: 'Fredoka One', cursive; 
 }
 h1 {
-    /* Set H1 title to Fredoka One for uniformity */
     font-family: 'Fredoka One', cursive; 
     font-size: 48px;
     text-align: center;
@@ -167,21 +166,22 @@ function drawBackground(){
     ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
-// Department Chart (2 rows, rotated labels)
+// Department Chart (2 rows, rotated labels) - IMPROVED SPACING
 function drawDepartmentChart(){
-    const chartX=50, chartY=150, chartWidth=650, chartHeight=500;
+    // Adjusted dimensions: wider chart, slightly less height, better top margin
+    const chartX=50, chartY=150, chartWidth=750, chartHeight=480; 
     const numDeps = departments.length;
     const half = Math.ceil(numDeps/2);
     const rowHeight = chartHeight/2;
     const maxBox=Math.max(...boxes, target * 0.1); 
 
-    // Graph Title: Use Fredoka One
+    // Graph Title: Fredoka One
     ctx.font="32px Fredoka One"; 
     ctx.fillStyle="white";
     ctx.textAlign="center";
-    ctx.fillText("Shoebox Collection Progress", chartX+chartWidth/2, chartY-40);
+    ctx.fillText("Shoebox Collection Progress", chartX+chartWidth/2, chartY-50); // Pushed up 10px
 
-    // Labels/Values: Use Fredoka One
+    // Labels/Values: Fredoka One
     ctx.font="24px Fredoka One"; 
     ctx.textAlign="center";
 
@@ -208,15 +208,15 @@ function drawDepartmentChart(){
 
             // Draw value above bar
             ctx.fillStyle="white";
-            ctx.font="28px Fredoka One"; // Value font
+            ctx.font="28px Fredoka One"; 
             ctx.fillText(b, x+barWidth/2, y-10);
 
             // Draw department label below the bars, diagonal
             ctx.save();
-            ctx.translate(x + barWidth/2, yOffset + rowHeight + 30); 
+            ctx.translate(x + barWidth/2, yOffset + rowHeight + 35); // Pushed down 5px for more space
             ctx.rotate(-Math.PI/6); 
             ctx.fillStyle="white";
-            ctx.font="20px Fredoka One"; // Label font
+            ctx.font="20px Fredoka One"; 
             ctx.fillText(icons[i % icons.length]+" "+departments[i], 0, 0);
             ctx.restore();
         }
@@ -231,9 +231,10 @@ function drawDepartmentChart(){
     ctx.stroke();
 }
 
-// Tube (with rounded rectangle, gradient animation, and sparkles)
+// Tube (with rounded rectangle, gradient animation, and sparkles) - IMPROVED SPACING
 function drawTube(){
-    const tubeX=750,tubeY=150,tubeWidth=150,tubeHeight=500;
+    // Adjusted dimensions: pushed right, slightly less height, better top margin
+    const tubeX=850,tubeY=150,tubeWidth=150,tubeHeight=480; 
     const percent=Math.min(totalBoxes/target,1);
     const fillHeight=tubeHeight*percent;
 
@@ -244,11 +245,11 @@ function drawTube(){
     ctx.lineWidth=4;
     ctx.stroke();
 
-    // Overall Progress Title: Use Fredoka One
+    // Overall Progress Title: Fredoka One
     ctx.font = "32px Fredoka One"; 
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
-    ctx.fillText("Overall Progress", tubeX + tubeWidth / 2, tubeY - 40);
+    ctx.fillText("Overall Progress", tubeX + tubeWidth / 2, tubeY - 50); // Pushed up 10px
 
     // Clip to tube
     ctx.save();
@@ -295,11 +296,11 @@ function drawTube(){
     ctx.lineTo(tubeX + tubeWidth + 10, targetY);
     ctx.stroke();
 
-    // Label: Use Fredoka One
+    // Label: Fredoka One
     ctx.font="32px Fredoka One"; 
     ctx.fillStyle="white";
     ctx.textAlign="center";
-    ctx.fillText(totalBoxes+" / "+target, tubeX+tubeWidth/2, tubeY+tubeHeight+40);
+    ctx.fillText(totalBoxes+" / "+target, tubeX+tubeWidth/2, tubeY+tubeHeight+45); // Pushed down 5px for more space
 }
 
 // ---------------- Main Draw Loop ----------------
