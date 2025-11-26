@@ -190,22 +190,15 @@ function drawTube(){
 // ---------------- Data Loading Function (Async/Await) ----------------
 async function loadData() {
     try {
-        // --- THE CRITICAL FIX: Add a unique timestamp parameter to bypass cache ---
+        // --- THIS IS THE CRITICAL CACHE-BUSTING FIX ---
         const cacheBustingUrl = 'data.json?' + new Date().getTime(); 
         const response = await fetch(cacheBustingUrl);
+        // ----------------------------------------------
         
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
 
-        // Update global variables
-        departments = data.departments || [];
-        boxes = data.boxes || [];
-        target = data.target || 0;
-        
-        // Update the input fields with the new data from data.json (for local edits)
-        document.getElementById("deptInput").value = departments.join(', ');
-        document.getElementById("boxInput").value = boxes.join(', ');
-        document.getElementById("targetInput").value = target;
+        // ... rest of your function (updating departments, boxes, target, and input fields) ...
 
     } catch (error) {
         console.error("Failed to load data.json. Using current local data.", error);
@@ -265,3 +258,4 @@ async function initializeDashboard() {
 
 initializeDashboard(); // Start the process by fetching data first
 </script>
+
