@@ -212,14 +212,16 @@ function drawBackground(){
     ctx.fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT); // Use dynamic width/height
 }
 
-// Department Chart (2 rows, rotated labels)
+// Department Chart (Dynamic rows, rotated labels)
 function drawDepartmentChart(){
     // Use dynamic chart dimensions
     const numDeps = departments.length;
-    const half = Math.ceil(numDeps/2);
-    // On mobile, force one row to maximize bar height
-    const rows = isMobile ? 1 : 2; 
-    const rowHeight = chartHeight/rows;
+    
+    // Determine number of rows for department chart on mobile
+    let rows = isMobile ? (numDeps > 9 ? 3 : (numDeps > 4 ? 2 : 1)) : 2;
+    
+    const countPerRow = Math.ceil(numDeps / rows);
+    const rowHeight = chartHeight / rows;
     const maxBox=Math.max(...boxes, target * 0.1); 
 
     // Graph Title: Fredoka One
@@ -232,13 +234,12 @@ function drawDepartmentChart(){
     ctx.textAlign="center";
 
     for(let row=0; row<rows; row++){
-        const startIdx = row*half;
-        const endIdx = Math.min(startIdx+half, numDeps);
-        const yOffset = chartY + row*rowHeight;
+        const startIdx = row * countPerRow;
+        const endIdx = Math.min(startIdx + countPerRow, numDeps);
+        const yOffset = chartY + row * rowHeight;
         if(startIdx >= endIdx) continue; 
 
         const depCountInRow = endIdx - startIdx;
-        // Ensure division by zero doesn't occur
         const barArea = depCountInRow > 0 ? chartWidth / depCountInRow : chartWidth;
         const barWidth = barArea * 0.6;
         const spacing = barArea * 0.2; 
@@ -366,6 +367,7 @@ function updateData(){
     boxes=document.getElementById("boxInput").value.split(",").map(a=>Number(a));
     target=Number(document.getElementById("targetInput").value);
     totalBoxes = boxes.reduce((a, b) => a + b, 0); // Recalculate total
+    setupDimensions(); // Recalculate layout based on new department count
 }
 
 function exportPNG(){
@@ -434,28 +436,39 @@ function startPolling() {
 // --- Responsive Logic ---
 function setupDimensions() {
     isMobile = window.innerWidth <= 768;
-
+    const numDeps = departments.length;
+    
     if (isMobile) {
+        // Calculate the height needed for the department chart based on rows (max 3)
+        let rows = numDeps > 9 ? 3 : (numDeps > 4 ? 2 : 1);
+        
+        // Base height for one row (including title/padding/labels)
+        const rowDisplayHeight = 150; 
+        
+        // Calculate Dept Chart height: 50 (title offset) + rows * 150 (row height) + 40 (label space)
+        chartHeight = rows * rowDisplayHeight; 
+        const deptChartTotalHeight = chartHeight + 90; // Add space for title and axis labels
+
         CANVAS_WIDTH = window.innerWidth - 40; // Full width minus padding
-        CANVAS_HEIGHT = 800; // Increased height to stack elements
+        // Set height for stacked view: Dept Chart + Tube Chart + Padding
+        CANVAS_HEIGHT = deptChartTotalHeight + 450; // Total height for Dept chart + 450 for tube/padding
         
-        // Tube Chart (on top right, but centered below chart)
-        tubeWidth = 100;
-        tubeHeight = 350;
-        tubeX = (CANVAS_WIDTH / 2) - (tubeWidth / 2);
-        tubeY = 400; // Place in the lower half
-        
-        // Department Chart (Top left, takes most of the width)
+        // Department Chart (Top, takes most of the width)
         chartX = 20;
         chartY = 50;
         chartWidth = CANVAS_WIDTH - 40;
-        chartHeight = 300; // Shorter height for the bar chart
+        
+        // Tube Chart (Bottom, centered)
+        tubeWidth = 100;
+        tubeHeight = 300;
+        tubeX = (CANVAS_WIDTH / 2) - (tubeWidth / 2);
+        tubeY = chartY + deptChartTotalHeight + 50; // Place below the dept chart, with a gap
         
     } else {
+        // Desktop Layout (Original)
         CANVAS_WIDTH = 1200;
         CANVAS_HEIGHT = 700;
         
-        // Original desktop layout
         chartX = 50; 
         chartY = 150; 
         chartWidth = 750; 
@@ -480,17 +493,20 @@ async function initializeDashboard() {
     canvas = document.getElementById('dashboardCanvas');
     ctx = canvas.getContext('2d');
     
-    // Set initial dimensions based on screen size
+    // 1. Load data once immediately
+    await loadData(); 
+    
+    // 2. Set initial dimensions based on screen size (which depends on loaded data)
     setupDimensions(); 
     
-    // Re-run setup dimensions on window resize
+    // 3. Re-run setup dimensions on window resize (to handle orientation change)
     window.addEventListener('resize', setupDimensions); 
-
-    await loadData(); // 1. Load data once immediately
     
-    startPolling(); // 2. Start polling for future changes
+    // 4. Start polling for future changes
+    startPolling(); 
     
-    drawDashboard(); // 3. Start animation loop
+    // 5. Start animation loop
+    drawDashboard(); 
 }
 
 // Start everything when the page is fully loaded
