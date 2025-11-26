@@ -28,17 +28,10 @@ exports.handler = async (event, context) => {
     const token = process.env.GITHUB_PAT;
     const owner = "gabrielleborces-dotcom";
     const repo = "shoebox-of-malasakit";
-
-    if (!token) {
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ success: false, message: "Server Error: Missing GITHUB_PAT environment variable." }),
-        };
-    }
     
     const octokit = new Octokit({ auth: token });
 
-    // 3. Get current SHA of data.json (or null if it doesn't exist)
+    // 3. Get current SHA of data.json
     let sha = undefined;
     try {
         const { data } = await octokit.repos.getContent({
@@ -48,7 +41,6 @@ exports.handler = async (event, context) => {
         });
         sha = data.sha;
     } catch (getContentError) {
-        // If the file is not found (404), Octokit throws an error, we catch it and proceed with sha = undefined
         if (getContentError.status !== 404) {
              throw getContentError;
         }
@@ -61,9 +53,7 @@ exports.handler = async (event, context) => {
       repo,
       path: "data.json",
       message: "Update data.json via Netlify admin panel",
-      // Convert the JSON payload back to a base64 string, formatted for readability
       content: Buffer.from(JSON.stringify(updatedData, null, 2)).toString("base64"),
-      // sha is required for updates, optional for creation
       sha: sha, 
     });
 
