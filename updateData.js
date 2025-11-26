@@ -1,44 +1,82 @@
-const fetch = require('node-fetch');
+const { Octokit } = require("@octokit/rest");
 
-exports.handler = async function(event, context) {
+exports.handler = async (event, context) => {
+  // Ensure the body exists and is properly parsed
+  let updatedData;
   try {
-    if (event.httpMethod !== 'POST') {
-      return { statusCode: 405, body: 'Method Not Allowed' };
-    }
-    const body = JSON.parse(event.body || '{}');
-    const { repoOwner, repoName, adminPassword, data } = body;
-    if (!process.env.GITHUB_PAT) return { statusCode: 500, body: 'Missing GITHUB_PAT' };
-    if (!process.env.ADMIN_PASSWORD) return { statusCode: 500, body: 'Missing ADMIN_PASSWORD' };
-    if (!adminPassword || adminPassword !== process.env.ADMIN_PASSWORD) return { statusCode: 403, body: 'Invalid admin password' };
-
-    const token = process.env.GITHUB_PAT;
-
-    // get current sha if exists
-    const getRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/data.json`, {
-      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
-    });
-
-    let sha = null;
-    if (getRes.status === 200) {
-      const j = await getRes.json();
-      sha = j.sha;
-    }
-
-    const content = Buffer.from(JSON.stringify(data, null, 2)).toString('base64');
-
-    const putRes = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/data.json`, {
-      method: 'PUT',
-      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' },
-      body: JSON.stringify({ message: 'Update data.json via Netlify Function', content, sha })
-    });
-
-    if (!putRes.ok) {
-      const t = await putRes.text();
-      return { statusCode: 400, body: 'GitHub update failed: ' + t };
-    }
-
-    return { statusCode: 200, body: 'Update successful. Netlify will redeploy shortly.' };
+    updatedData = JSON.parse(event.body);
   } catch (err) {
-    return { statusCode: 500, body: err.toString() };
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ success: false, message: "Invalid JSON in request body." }),
+    };
+  }
+  
+  try {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    const requestPassword = event.headers["x-admin-password"];
+
+    // 1. Password Check
+    if (!requestPassword || requestPassword !== adminPassword) {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ success: false, message: "Unauthorized: Invalid admin password" }),
+      };
+    }
+
+    // 2. Setup GitHub Connection (Hardcoded values confirmed from previous files)
+    const token = process.env.GITHUB_PAT;
+    const owner = "gabrielleborces-dotcom";
+    const repo = "shoebox-of-malasakit";
+
+    if (!token) {
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ success: false, message: "Server Error: Missing GITHUB_PAT environment variable." }),
+        };
+    }
+    
+    const octokit = new Octokit({ auth: token });
+
+    // 3. Get current SHA of data.json
+    let fileData;
+    try {
+        const { data } = await octokit.repos.getContent({
+          owner,
+          repo,
+          path: "data.json",
+        });
+        fileData = data;
+    } catch (getContentError) {
+        // If file doesn't exist, fileData will be undefined, but we need to handle Octokit throwing 404
+        if (getContentError.status !== 404) {
+             throw getContentError;
+        }
+        // If 404, fileData remains undefined, which means sha will be null for createOrUpdateFileContents
+    }
+
+
+    // 4. Update or Create the File
+    await octokit.repos.createOrUpdateFileContents({
+      owner,
+      repo,
+      path: "data.json",
+      message: "Update via Netlify admin panel",
+      // Convert the JSON payload back to a base64 string
+      content: Buffer.from(JSON.stringify(updatedData, null, 2)).toString("base64"),
+      // If fileData exists, pass the SHA to ensure we don't overwrite concurrent changes
+      sha: fileData ? fileData.sha : undefined,
+    });
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ success: true, message: "Data updated successfully! Site redeployment triggered." }),
+    };
+  } catch (err) {
+    console.error("GitHub/Server Error:", err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ success: false, message: `GitHub update failed: ${err.message}` }),
+    };
   }
 };
