@@ -16,102 +16,69 @@ textarea,input { width:100%; padding:10px; border-radius:8px; border:none; margi
 button { padding:12px; border-radius:10px; border:none; cursor:pointer; font-size:18px; margin-top:10px; font-weight:bold; width:100%; background:#43a047; color:white;}
 button:hover { background:#2e7d32; }
 .container { max-width:1200px; margin:auto; }
+#canvas { display:block; background-color:black; margin-bottom:20px; border-radius:10px;}
+.input-panel {
+    background: rgba(0,0,0,0.2);
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+}
 </style>
 </head>
-<body onload="initializeDashboard()">
+<body>
 <div class="container">
-    <h1>🎄 Shoebox Monitoring Dashboard</h1>
-    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-        
-        <div style="flex: 1; min-width: 300px; margin-right: 20px;">
-            <label for="deptInput">Departments (Comma Separated):</label>
-            <textarea id="deptInput" rows="4" oninput="updateData()"></textarea>
-            
-            <label for="boxInput">Shoeboxes Received (Comma Separated Values):</label>
-            <textarea id="boxInput" rows="4" oninput="updateData()"></textarea>
+    <h1 style="text-align:center; font-family: 'Mountains of Christmas', cursive; font-size: 3em;">🎁 Shoebox of Malasakit Dashboard</h1>
+    <canvas id="canvas" width="1000" height="700"></canvas>
 
-            <label for="targetInput">Total Target:</label>
-            <input id="targetInput" type="number" value="1000" oninput="updateData()">
-
-            <div style="margin-top: 20px; display: flex; gap: 10px;">
-                <button onclick="exportPNG()" style="flex: 1; background: #1976d2;">Export PNG</button>
-                <button onclick="exportGIF()" style="flex: 1; background: #00897b;">Export GIF</button>
-            </div>
-
-            <p style="text-align: center; margin-top: 15px; font-size: 14px;">
-                *Edits here are **local only**. For global updates, use the <a href="admin.html" style="color: #ffeb3b; font-weight: bold;">Admin Page</a>.
-            </p>
-        </div>
-
-        <div style="flex: 2; display: flex; justify-content: center;">
-            <canvas id="dashboardCanvas" width="800" height="600" style="background-color: #000; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></canvas>
-        </div>
+    <div class="input-panel">
+        <h2>Edit Data (Local Only)</h2>
+        <label for="deptInput">Departments (Comma Separated):</label>
+        <textarea id="deptInput" rows="2" oninput="updateData()"></textarea>
+        <label for="boxInput">Shoeboxes Received (Comma Separated Values):</label>
+        <textarea id="boxInput" rows="2" oninput="updateData()"></textarea>
+        <label for="targetInput">Total Target:</label>
+        <input id="targetInput" type="number" oninput="updateData()">
+        <button onclick="updateData()">Apply Local Changes</button>
+        <button onclick="exportPNG()">Export to PNG</button>
+        <button onclick="exportGIF()">Export to GIF</button>
+        <p style="font-size: 0.8em; margin-top: 10px;">*Changes made here are only visible on your browser unless an Admin commits them via the /admin.html page.</p>
     </div>
 </div>
 
 <script>
-// Canvas setup
-const canvas = document.getElementById('dashboardCanvas');
+const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-// Data variables - Initial values are placeholders, real data is loaded via loadData()
 let departments = [];
 let boxes = [];
 let target = 0;
+let totalBoxes = 0;
 
-// Snow effect variables
-const snow = [];
+// --- Animation/Visual Variables ---
+let snow = [];
 const numSnowflakes = 100;
 
-// Utility function: Sum of array elements
-const sumArray = arr => arr.reduce((a, b) => a + b, 0);
-
-// Colors for the department bars
-const colors = ['#00BCD4', '#4CAF50', '#FFEB3B', '#FF9800', '#E91E63', '#9C27B0', '#03A9F4', '#8BC34A', '#FFC107', '#795548', '#607D8B', '#009688', '#F44336', '#3F51B5', '#CDDC39', '#FF5722'];
-
-// ---------------- Data Handling ----------------
-async function loadData() {
-    try {
-        // Use cache-busting for public view to get the latest committed data
-        const response = await fetch('data.json?' + new Date().getTime());
-        if (!response.ok) throw new Error('Failed to fetch data.json');
-        const data = await response.json();
-        
-        // Update global variables
-        departments = data.departments || [];
-        boxes = data.boxes || [];
-        target = data.target || 0;
-
-        // Populate input fields with current data
-        document.getElementById("deptInput").value = departments.join(', ');
-        document.getElementById("boxInput").value = boxes.join(', ');
-        document.getElementById("targetInput").value = target;
-
-    } catch (error) {
-        console.error("Error loading data:", error);
-        // Fallback: use default/empty data if fetch fails
-        departments = ["Dept 1", "Dept 2", "Dept 3"];
-        boxes = [0, 0, 0];
-        target = 1000;
-    }
-}
-
-
-// ---------------- Drawing Functions ----------------
-
-// Function to initialize snow
-function initSnow() {
+function setupSnow() {
+    snow = [];
     for (let i = 0; i < numSnowflakes; i++) {
         snow.push({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            r: Math.random() * 3 + 1, // Radius
-            d: Math.random() * 1 // Density/speed
+            r: Math.random() * 3 + 1, // radius
+            d: Math.random() * numSnowflakes // density
         });
     }
 }
 
-// Draw snow on the canvas
+function drawBackground() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#c62828'); // Dark Red Top
+    gradient.addColorStop(1, '#8e0000'); // Darker Red Bottom
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
 function drawSnow() {
     ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
     ctx.beginPath();
@@ -121,19 +88,39 @@ function drawSnow() {
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2, true);
     }
     ctx.fill();
-    updateSnow();
-}
-
-// Update snow position
-function updateSnow() {
-    const windSpeed = 0.5; // Horizontal movement
+    
+    // Update snow position
     for (let i = 0; i < numSnowflakes; i++) {
         const p = snow[i];
+        p.y += Math.cos(p.d) + 1 + p.r / 2;
+        p.x += Math.sin(p.d) * 0.4;
         
-        // Update y position
-        p.y += Math.pow(p.d, 2) + 1;
-        
-        // Add horizontal movement (wind)
-        p.x += windSpeed * p.d;
-        
-        // If the
+        // Send flakes back to the top when they fall off
+        if (p.y > canvas.height) {
+            p.y = -5;
+            p.x = Math.random() * canvas.width;
+        }
+    }
+}
+
+function drawDepartmentChart() {
+    // Chart Area
+    const chartX = 50;
+    const chartY = 100;
+    const chartWidth = canvas.width - 450;
+    const chartHeight = 500;
+
+    // Draw Chart Background
+    ctx.fillStyle = "rgba(0,0,0,0.2)";
+    ctx.fillRect(chartX, chartY, chartWidth, chartHeight);
+    
+    // Y-Axis Label
+    ctx.font = "20px Fredoka One";
+    ctx.fillStyle = "white";
+    ctx.textAlign = "right";
+    ctx.fillText("Shoeboxes", chartX - 10, chartY - 10);
+    
+    // X-Axis (Base Line)
+    ctx.strokeStyle = "rgba(255,255,255,0.7)";
+    ctx.lineWidth = 2;
+    ctx.beginPath
