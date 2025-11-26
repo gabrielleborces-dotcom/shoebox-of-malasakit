@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>🎄 Shoebox Dashboard</title>
+<title>🎁 Shoebox Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Mountains+of+Christmas:wght=700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <style>
 /* Consolidated CSS styles */
 body {
@@ -16,7 +16,13 @@ label {
     display:block; 
     margin-top:10px; 
     font-weight:bold; 
-    font-family: 'Fredoka One', cursive; /* Explicitly ensure label matches body font */
+    font-family: 'Fredoka One', cursive; 
+}
+h1 {
+    /* Set H1 title to Fredoka One for uniformity */
+    font-family: 'Fredoka One', cursive; 
+    font-size: 48px;
+    text-align: center;
 }
 textarea, input { 
     width:100%; 
@@ -26,7 +32,7 @@ textarea, input {
     margin-top:6px; 
     margin-bottom:15px; 
     font-size:16px;
-    font-family: 'Fredoka One', cursive; /* Added Fredoka One to input fields for fun style */
+    font-family: 'Fredoka One', cursive; 
 }
 button { 
     padding:12px; 
@@ -39,7 +45,7 @@ button {
     width:100%; 
     background:#43a047; 
     color:white;
-    font-family: 'Fredoka One', cursive; /* Added Fredoka One to buttons */
+    font-family: 'Fredoka One', cursive; 
 }
 button:hover { background:#2e7d32; }
 .container { max-width:1200px; margin:auto; }
@@ -56,11 +62,11 @@ button:hover { background:#2e7d32; }
 <body>
 
 <div class="container">
-    <h1 style="text-align:center; font-family:'Mountains of Christmas', cursive; font-size:48px;">🎅 2025 Ginebra Shoebox Dashboard 🎄</h1>
+    <h1>🎁 2025 Ginebra Shoebox Dashboard 🎄</h1>
 
     <canvas id="dashboardCanvas" width="1200" height="700"></canvas>
 
-    <h2 style="text-align:center; margin-top: 30px;">Local Data Preview (Not Global Save)</h2>
+    <h2 style="text-align:center; margin-top: 30px; font-family: 'Fredoka One', cursive;">Local Data Preview (Not Global Save)</h2>
     <p style="text-align:center;">Edit the fields below to see the dashboard change. **To save these changes globally, a separate admin page is usually needed.**</p>
     
     <label for="deptInput">Departments (Comma Separated):</label>
@@ -161,34 +167,34 @@ function drawBackground(){
     ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
-// Department Chart (from v29, 2 rows, rotated labels)
+// Department Chart (2 rows, rotated labels)
 function drawDepartmentChart(){
     const chartX=50, chartY=150, chartWidth=650, chartHeight=500;
     const numDeps = departments.length;
     const half = Math.ceil(numDeps/2);
     const rowHeight = chartHeight/2;
-    const maxBox=Math.max(...boxes, target * 0.1); // Use target * 0.1 as a minimum for scaling
+    const maxBox=Math.max(...boxes, target * 0.1); 
 
-    // Graph Title: Use Mountains of Christmas
-    ctx.font="32px Mountains of Christmas"; // Slightly larger
+    // Graph Title: Use Fredoka One
+    ctx.font="32px Fredoka One"; 
     ctx.fillStyle="white";
     ctx.textAlign="center";
-    ctx.fillText("2025 Ginebra Shoebox of Malasakit Collection", chartX+chartWidth/2, chartY-40);
+    ctx.fillText("Shoebox Collection Progress", chartX+chartWidth/2, chartY-40);
 
-    // Labels/Values: Use Fredoka One for fun style
-    ctx.font="24px Fredoka One"; // Slightly larger
+    // Labels/Values: Use Fredoka One
+    ctx.font="24px Fredoka One"; 
     ctx.textAlign="center";
 
     for(let row=0; row<2; row++){
         const startIdx = row*half;
         const endIdx = Math.min(startIdx+half, numDeps);
         const yOffset = chartY + row*rowHeight;
-        if(startIdx >= endIdx) continue; // Skip if no departments in row
+        if(startIdx >= endIdx) continue; 
 
         const depCountInRow = endIdx - startIdx;
         const barArea = chartWidth / depCountInRow;
         const barWidth = barArea * 0.6;
-        const spacing = barArea * 0.2; // Equivalent to (barArea - barWidth)/2 on each side
+        const spacing = barArea * 0.2; 
 
         for(let i=startIdx;i<endIdx;i++){
             const b=boxes[i];
@@ -207,8 +213,8 @@ function drawDepartmentChart(){
 
             // Draw department label below the bars, diagonal
             ctx.save();
-            ctx.translate(x + barWidth/2, yOffset + rowHeight + 30); // move below axis
-            ctx.rotate(-Math.PI/6); // rotate 30 degrees
+            ctx.translate(x + barWidth/2, yOffset + rowHeight + 30); 
+            ctx.rotate(-Math.PI/6); 
             ctx.fillStyle="white";
             ctx.font="20px Fredoka One"; // Label font
             ctx.fillText(icons[i % icons.length]+" "+departments[i], 0, 0);
@@ -225,7 +231,7 @@ function drawDepartmentChart(){
     ctx.stroke();
 }
 
-// Tube (from v29, with rounded rectangle, gradient animation, and sparkles)
+// Tube (with rounded rectangle, gradient animation, and sparkles)
 function drawTube(){
     const tubeX=750,tubeY=150,tubeWidth=150,tubeHeight=500;
     const percent=Math.min(totalBoxes/target,1);
@@ -238,8 +244,8 @@ function drawTube(){
     ctx.lineWidth=4;
     ctx.stroke();
 
-    // Overall Progress Title: Use Mountains of Christmas
-    ctx.font = "32px Mountains of Christmas"; // Slightly larger
+    // Overall Progress Title: Use Fredoka One
+    ctx.font = "32px Fredoka One"; 
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
     ctx.fillText("Overall Progress", tubeX + tubeWidth / 2, tubeY - 40);
@@ -280,7 +286,7 @@ function drawTube(){
 
     ctx.restore(); // Stop clipping
 
-    // Target line (Always at the top of the tube if the bar represents the target, adjusted for the new tube position)
+    // Target line 
     const targetY = tubeY;
     ctx.strokeStyle = "#ffeb3b";
     ctx.lineWidth = 4;
@@ -290,7 +296,7 @@ function drawTube(){
     ctx.stroke();
 
     // Label: Use Fredoka One
-    ctx.font="32px Fredoka One"; // Slightly larger
+    ctx.font="32px Fredoka One"; 
     ctx.fillStyle="white";
     ctx.textAlign="center";
     ctx.fillText(totalBoxes+" / "+target, tubeX+tubeWidth/2, tubeY+tubeHeight+40);
@@ -338,10 +344,9 @@ function exportGIF(){
     captureFrame();
 }
 
-// --- Data Fetcher (from index.html) ---
+// --- Data Fetcher ---
 async function loadData() {
     try {
-        // Attempt to fetch data.json for a dynamic, shared experience
         const response = await fetch('data.json?' + new Date().getTime()); 
         if (!response.ok) throw new Error('Failed to fetch data.json');
         const data = await response.json();
@@ -352,7 +357,7 @@ async function loadData() {
         
     } catch (error) {
         console.warn('Error loading data.json, using fallback data:', error);
-        // Fallback data from the original v29 file
+        // Fallback data
         departments = ["HR", "Finance", "Logistics", "Sales", "IT", "Marketing", "Admin", "Customer Service", "Procurement", "R&D"];
         boxes = [120, 95, 160, 180, 140, 100, 80, 110, 70, 90];
         target = 1500;
