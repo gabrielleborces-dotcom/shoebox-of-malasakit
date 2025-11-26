@@ -18,289 +18,122 @@ button:hover { background:#2e7d32; }
 .container { max-width:1200px; margin:auto; }
 </style>
 </head>
-<body>
+<body onload="initializeDashboard()">
 <div class="container">
-<h1 style="text-align:center; font-family:'Mountains of Christmas', cursive; font-size:48px;">🎅 2025 Ginebra Shoebox Dashboard 🎄</h1>
+    <h1>🎄 Shoebox Monitoring Dashboard</h1>
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        
+        <div style="flex: 1; min-width: 300px; margin-right: 20px;">
+            <label for="deptInput">Departments (Comma Separated):</label>
+            <textarea id="deptInput" rows="4" oninput="updateData()"></textarea>
+            
+            <label for="boxInput">Shoeboxes Received (Comma Separated Values):</label>
+            <textarea id="boxInput" rows="4" oninput="updateData()"></textarea>
 
-<label>Departments:</label>
-<textarea id="deptInput"></textarea>
-<label>Shoeboxes Received:</label>
-<textarea id="boxInput"></textarea>
-<label>Total Target:</label>
-<input id="targetInput" type="number">
-<button onclick="updateData()">Update Dashboard (Local Only)</button>
-<button onclick="exportPNG()">📸 Export PNG</button>
-<button onclick="exportGIF()">🎬 Export Animated GIF</button>
+            <label for="targetInput">Total Target:</label>
+            <input id="targetInput" type="number" value="1000" oninput="updateData()">
 
-<canvas id="dashboardCanvas" width="1200" height="700" style="display:block; margin-top:20px; border:2px solid white; border-radius:15px;"></canvas>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button onclick="exportPNG()" style="flex: 1; background: #1976d2;">Export PNG</button>
+                <button onclick="exportGIF()" style="flex: 1; background: #00897b;">Export GIF</button>
+            </div>
+
+            <p style="text-align: center; margin-top: 15px; font-size: 14px;">
+                *Edits here are **local only**. For global updates, use the <a href="admin.html" style="color: #ffeb3b; font-weight: bold;">Admin Page</a>.
+            </p>
+        </div>
+
+        <div style="flex: 2; display: flex; justify-content: center;">
+            <canvas id="dashboardCanvas" width="800" height="600" style="background-color: #000; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></canvas>
+        </div>
+    </div>
 </div>
 
 <script>
-const canvas=document.getElementById('dashboardCanvas');
-const ctx=canvas.getContext('2d');
+// Canvas setup
+const canvas = document.getElementById('dashboardCanvas');
+const ctx = canvas.getContext('2d');
 
-// --- Global variables for data ---
-let departments=[];
-let boxes=[];
-let target=0;
+// Data variables - Initial values are placeholders, real data is loaded via loadData()
+let departments = [];
+let boxes = [];
+let target = 0;
 
-const pastelColors=["#FFB3BA","#FFDFBA","#FFFFBA","#BAFFC9","#BAE1FF","#E3BAFF","#FFCFF0","#C7F0FF"];
-const icons=["🎁","🎄","⛄","🔔","🧦","🕯️","❄️","🍪","🧸","🛷"];
+// Snow effect variables
+const snow = [];
+const numSnowflakes = 100;
 
-// ---------------- Ethereal Snowflake Class ----------------
-class Snowflake {
-    constructor() { this.reset(); }
-    reset() {
-        this.x=Math.random()*canvas.width;
-        this.y=Math.random()*canvas.height;
-        this.size=2+Math.random()*4;
-        this.speed=0.2+Math.random()*1.2;
-        this.angle=Math.random()*Math.PI*2;
-        this.opacity=0.2+Math.random()*0.4;
-        this.rotationSpeed=0.001+Math.random()*0.002;
-    }
-    update() {
-        this.y+=this.speed;
-        this.x+=Math.sin(this.angle)*0.5;
-        this.angle+=this.rotationSpeed;
-        if(this.y>canvas.height || this.x<0 || this.x>canvas.width) this.reset();
-    }
-    draw(ctx){
-        ctx.save();
-        ctx.translate(this.x,this.y);
-        ctx.rotate(this.angle*5);
-        ctx.strokeStyle=`rgba(255,255,255,${this.opacity})`;
-        ctx.lineWidth=1;
-        ctx.beginPath();
-        for(let i=0;i<6;i++){ ctx.moveTo(0,0); ctx.lineTo(0,this.size); ctx.rotate(Math.PI/3);}
-        ctx.stroke();
-        ctx.restore();
-    }
-}
+// Utility function: Sum of array elements
+const sumArray = arr => arr.reduce((a, b) => a + b, 0);
 
-let snowflakes=[];
-for(let i=0;i<100;i++) snowflakes.push(new Snowflake());
-function drawSnow(){ snowflakes.forEach(f=>{f.update();f.draw(ctx);}); }
+// Colors for the department bars
+const colors = ['#00BCD4', '#4CAF50', '#FFEB3B', '#FF9800', '#E91E63', '#9C27B0', '#03A9F4', '#8BC34A', '#FFC107', '#795548', '#607D8B', '#009688', '#F44336', '#3F51B5', '#CDDC39', '#FF5722'];
 
-// ---------------- Background ----------------
-function drawBackground(){
-    const grad=ctx.createLinearGradient(0,0,0,canvas.height);
-    grad.addColorStop(0,"#c62828");
-    grad.addColorStop(1,"#8e0000");
-    ctx.fillStyle=grad;
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-}
-
-// ---------------- Department Chart (2 Rows) ----------------
-function drawDepartmentChart(){
-    const chartX=50, chartY=150, chartWidth=650, chartHeight=500;
-    const numDeps = departments.length;
-    const half = Math.ceil(numDeps/2);
-    const rowHeight = chartHeight/2;
-    const maxBox=Math.max(...boxes,target);
-
-    // Add graph title above department bars
-    ctx.font="28px Mountains of Christmas";
-    ctx.fillStyle="white";
-    ctx.textAlign="center";
-    ctx.fillText("2025 Ginebra Shoebox of Malasakit Collection", chartX+chartWidth/2, chartY-40);
-
-    ctx.font="20px Fredoka One";
-    ctx.textAlign="center";
-
-    for(let row=0; row<2; row++){
-        const startIdx = row*half;
-        const endIdx = Math.min(startIdx+half, numDeps);
-        const yOffset = chartY + row*rowHeight;
-        for(let i=startIdx;i<endIdx;i++){
-            const b=boxes[i];
-            const barHeight=(b/maxBox)*rowHeight;
-            const barWidth = chartWidth/(endIdx-startIdx)*0.6;
-            const x = chartX + (i-startIdx)*(chartWidth/(endIdx-startIdx)) + (chartWidth/(endIdx-startIdx)*0.2);
-            const y = yOffset + rowHeight - barHeight;
-
-            // Draw bar
-            ctx.fillStyle=pastelColors[i % pastelColors.length];
-            ctx.fillRect(x,y,barWidth,barHeight);
-
-            // Draw value above bar
-            ctx.fillStyle="white";
-            ctx.fillText(b, x+barWidth/2, y-10);
-
-            // Draw department label below the bars, diagonal
-            ctx.save();
-            ctx.translate(x + barWidth/2, yOffset + rowHeight + 30); // move below axis
-            ctx.rotate(-Math.PI/6); // rotate 30 degrees
-            ctx.fillStyle="white";
-            ctx.fillText(icons[i % icons.length]+" "+departments[i], 0, 0);
-            ctx.restore();
-        }
-    }
-
-    // Y-axis
-    ctx.strokeStyle="white";
-    ctx.lineWidth=2;
-    ctx.beginPath();
-    ctx.moveTo(chartX,chartY);
-    ctx.lineTo(chartX,chartY+chartHeight);
-    ctx.stroke();
-}
-
-// ---------------- Tube ----------------
-CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
-    if(w<2*r) r=w/2;
-    if(h<2*r) h=h/2;
-    this.beginPath();
-    this.moveTo(x+r,y);
-    this.arcTo(x+w,y,x+w,y+h,r);
-    this.arcTo(x+w,y+h,x,y+h,r);
-    this.arcTo(x,y+h,x,y,r);
-    this.arcTo(x,y,x+w,y,r);
-    this.closePath();
-    return this;
-};
-
-let tubeGradientOffset=0;
-let sparkles=[];
-function drawTube(){
-    const tubeX=750,tubeY=150,tubeWidth=150,tubeHeight=500;
-    const totalBoxes=boxes.reduce((a,b)=>a+b,0);
-    const percent=Math.min(totalBoxes/target,1);
-    const fillHeight=tubeHeight*percent;
-
-    // Tube border
-    ctx.beginPath();
-    ctx.roundRect(tubeX,tubeY,tubeWidth,tubeHeight,75);
-    ctx.strokeStyle="white";
-    ctx.lineWidth=4;
-    ctx.stroke();
-
-    // Clip to tube
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(tubeX,tubeY,tubeWidth,tubeHeight,75);
-    ctx.clip();
-
-    // Continuous gradient animation
-    const grad=ctx.createLinearGradient(tubeX+tubeGradientOffset, tubeY+tubeHeight-fillHeight, tubeX+tubeWidth+tubeGradientOffset, tubeY+tubeHeight);
-    for(let i=0;i<pastelColors.length;i++) grad.addColorStop(i/(pastelColors.length-1), pastelColors[i]);
-    ctx.fillStyle=grad;
-    ctx.fillRect(tubeX, tubeY+tubeHeight-fillHeight, tubeWidth, fillHeight);
-
-    tubeGradientOffset+=0.5;
-    if(tubeGradientOffset>tubeWidth) tubeGradientOffset=0;
-
-    // Sparkles
-    if(!sparkles.length && totalBoxes > 0){ 
-        for(let i=0;i<25;i++){
-            sparkles.push({x:Math.random()*tubeWidth, y:Math.random()*fillHeight, radius:1+Math.random()*2, alpha:Math.random()*0.6+0.3, delta:Math.random()*0.02+0.01});
-        }
-    }
-    sparkles.forEach(s=>{
-        s.alpha+=s.delta;
-        if(s.alpha>1 || s.alpha<0.2) s.delta*=-1;
-        ctx.fillStyle=`rgba(255,255,255,${s.alpha})`;
-        ctx.beginPath();
-        ctx.arc(tubeX+s.x, tubeY+tubeHeight-s.y, s.radius,0,Math.PI*2);
-        ctx.fill();
-    });
-
-    ctx.restore();
-
-    // Target line
-    const effectiveTarget = target > 0 ? target : 1; 
-    const targetY=tubeY+tubeHeight-(tubeHeight*effectiveTarget/effectiveTarget); 
-    ctx.strokeStyle="#ffeb3b";
-    ctx.lineWidth=4;
-    ctx.beginPath();
-    ctx.moveTo(tubeX-10,tubeY); 
-    ctx.lineTo(tubeX+tubeWidth+10,tubeY);
-    ctx.stroke();
-
-    // Label
-    ctx.font="28px Fredoka One";
-    ctx.fillStyle="white";
-    ctx.textAlign="center";
-    ctx.fillText(totalBoxes+" / "+target, tubeX+tubeWidth/2, tubeY+tubeHeight+40);
-}
-
-// ---------------- Data Loading Function (Async/Await) ----------------
+// ---------------- Data Handling ----------------
 async function loadData() {
     try {
-        // *** CRITICAL FIX: CACHE-BUSTING ***
-        // This is the line that prevents the browser/CDN from serving a stale data.json file.
-        const cacheBustingUrl = 'data.json?' + new Date().getTime(); 
-        const response = await fetch(cacheBustingUrl);
-        
-        if (!response.ok) throw new Error('Network response was not ok');
+        // Use cache-busting for public view to get the latest committed data
+        const response = await fetch('data.json?' + new Date().getTime());
+        if (!response.ok) throw new Error('Failed to fetch data.json');
         const data = await response.json();
-
-        // Update global variables used by the drawing functions
+        
+        // Update global variables
         departments = data.departments || [];
         boxes = data.boxes || [];
         target = data.target || 0;
-        
-        // Update the input fields with the new data from data.json (for local edits)
+
+        // Populate input fields with current data
         document.getElementById("deptInput").value = departments.join(', ');
         document.getElementById("boxInput").value = boxes.join(', ');
         document.getElementById("targetInput").value = target;
 
     } catch (error) {
-        console.error("Failed to load data.json. Using current local data.", error);
+        console.error("Error loading data:", error);
+        // Fallback: use default/empty data if fetch fails
+        departments = ["Dept 1", "Dept 2", "Dept 3"];
+        boxes = [0, 0, 0];
+        target = 1000;
     }
 }
 
 
-// ---------------- Main Draw ----------------
-function drawDashboard(){
-    drawBackground();
-    drawSnow();
-    drawDepartmentChart();
-    drawTube();
-    requestAnimationFrame(drawDashboard);
+// ---------------- Drawing Functions ----------------
+
+// Function to initialize snow
+function initSnow() {
+    for (let i = 0; i < numSnowflakes; i++) {
+        snow.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: Math.random() * 3 + 1, // Radius
+            d: Math.random() * 1 // Density/speed
+        });
+    }
 }
 
-// ---------------- Input & Export ----------------
-function updateData(){
-    // This function only updates local variables from the inputs, not the live file
-    departments=document.getElementById("deptInput").value.split(",").map(a=>a.trim());
-    boxes=document.getElementById("boxInput").value.split(",").map(a=>Number(a));
-    target=Number(document.getElementById("targetInput").value);
+// Draw snow on the canvas
+function drawSnow() {
+    ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.beginPath();
+    for (let i = 0; i < numSnowflakes; i++) {
+        const p = snow[i];
+        ctx.moveTo(p.x, p.y);
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2, true);
+    }
+    ctx.fill();
+    updateSnow();
 }
 
-function exportPNG(){
-    const dataURL=canvas.toDataURL("image/png");
-    const link=document.createElement('a');
-    link.href=dataURL;
-    link.download="shoebox-dashboard.png";
-    link.click();
-}
-
-function exportGIF(){
-    const gif=new GIF({workers:2,quality:10,width:canvas.width,height:canvas.height});
-    let frames=0;
-    const captureFrame=()=>{
-        if(frames<50){
-            gif.addFrame(canvas,{copy:true,delay:50});
-            frames++;
-            requestAnimationFrame(captureFrame);
-        } else {
-            gif.on('finished', blob=>window.open(URL.createObjectURL(blob)));
-            gif.render();
-        }
-    };
-    captureFrame();
-}
-
-// --- Initial setup function: Ensures data is loaded BEFORE drawing starts ---
-async function initializeDashboard() {
-    // 1. Fetch the latest shared data from data.json
-    await loadData();
-    // 2. Start the drawing loop
-    drawDashboard();
-}
-
-initializeDashboard(); // Start the process by fetching data first
-</script>
-</body>
-</html>
+// Update snow position
+function updateSnow() {
+    const windSpeed = 0.5; // Horizontal movement
+    for (let i = 0; i < numSnowflakes; i++) {
+        const p = snow[i];
+        
+        // Update y position
+        p.y += Math.pow(p.d, 2) + 1;
+        
+        // Add horizontal movement (wind)
+        p.x += windSpeed * p.d;
+        
+        // If the
