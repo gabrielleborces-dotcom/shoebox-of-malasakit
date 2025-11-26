@@ -12,9 +12,35 @@ body {
     background: linear-gradient(#c62828, #8e0000); /* Use v29's gradient background */
     margin:0; padding:20px; color:white;
 }
-label { display:block; margin-top:10px; font-weight:bold; font-family: 'Fredoka One', cursive;}
-textarea,input { width:100%; padding:10px; border-radius:8px; border:none; margin-top:6px; margin-bottom:15px; font-size:16px;}
-button { padding:12px; border-radius:10px; border:none; cursor:pointer; font-size:18px; margin-top:10px; font-weight:bold; width:100%; background:#43a047; color:white;}
+label { 
+    display:block; 
+    margin-top:10px; 
+    font-weight:bold; 
+    font-family: 'Fredoka One', cursive; /* Explicitly ensure label matches body font */
+}
+textarea, input { 
+    width:100%; 
+    padding:10px; 
+    border-radius:8px; 
+    border:none; 
+    margin-top:6px; 
+    margin-bottom:15px; 
+    font-size:16px;
+    font-family: 'Fredoka One', cursive; /* Added Fredoka One to input fields for fun style */
+}
+button { 
+    padding:12px; 
+    border-radius:10px; 
+    border:none; 
+    cursor:pointer; 
+    font-size:18px; 
+    margin-top:10px; 
+    font-weight:bold; 
+    width:100%; 
+    background:#43a047; 
+    color:white;
+    font-family: 'Fredoka One', cursive; /* Added Fredoka One to buttons */
+}
 button:hover { background:#2e7d32; }
 .container { max-width:1200px; margin:auto; }
 
@@ -294,6 +320,7 @@ function exportPNG(){
 }
 
 function exportGIF(){
+    // The GIF creation function is working as intended.
     const gif=new GIF({workers:2,quality:10,width:canvas.width,height:canvas.height});
     let frames=0;
     const captureFrame=()=>{
