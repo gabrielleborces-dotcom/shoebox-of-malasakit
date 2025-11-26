@@ -1,0 +1,8 @@
+{
+  "name": "shoebox-dashboard-functions",
+  "version": "1.0.0",
+  "description": "Dependencies for Netlify Functions.",
+  "dependencies": {
+    "@octokit/rest": "^18.0.0"
+  }
+}
