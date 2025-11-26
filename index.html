@@ -56,12 +56,22 @@ button:hover { background:#2e7d32; }
     border:2px solid white; 
     border-radius:15px;
 }
+/* New style for the status bar */
+#updateStatus {
+    text-align: center;
+    font-size: 18px;
+    margin-top: 20px;
+    font-weight: bold;
+    color: #ffeb3b; /* Yellow/Gold for visibility */
+}
 </style>
 </head>
 <body>
 
 <div class="container">
     <h1>🎁 2025 Ginebra Shoebox Dashboard 🎄</h1>
+
+    <div id="updateStatus">Checking for live data updates every 60 seconds...</div>
 
     <canvas id="dashboardCanvas" width="1200" height="700"></canvas>
 
@@ -89,6 +99,9 @@ let departments = [];
 let boxes = []; 
 let target = 1500; 
 let totalBoxes = 0; 
+
+// New: Polling interval ID
+let dataPollingInterval;
 
 // Department chart colors from v29 (more Christmassy/Pastel)
 const pastelColors=["#FFB3BA","#FFDFBA","#FFFFBA","#BAFFC9","#BAE1FF","#E3BAFF","#FFCFF0","#C7F0FF"];
@@ -166,7 +179,7 @@ function drawBackground(){
     ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
-// Department Chart (2 rows, rotated labels) - IMPROVED SPACING
+// Department Chart (2 rows, rotated labels)
 function drawDepartmentChart(){
     // Adjusted dimensions: wider chart, slightly less height, better top margin
     const chartX=50, chartY=150, chartWidth=750, chartHeight=480; 
@@ -179,7 +192,7 @@ function drawDepartmentChart(){
     ctx.font="32px Fredoka One"; 
     ctx.fillStyle="white";
     ctx.textAlign="center";
-    ctx.fillText("Shoebox Collection Progress", chartX+chartWidth/2, chartY-50); // Pushed up 10px
+    ctx.fillText("Shoebox Collection Progress", chartX+chartWidth/2, chartY-50); 
 
     // Labels/Values: Fredoka One
     ctx.font="24px Fredoka One"; 
@@ -208,15 +221,15 @@ function drawDepartmentChart(){
 
             // Draw value above bar
             ctx.fillStyle="white";
-            ctx.font="28px Fredoka One"; 
+            ctx.font="28px Fredoka One"; // Value font
             ctx.fillText(b, x+barWidth/2, y-10);
 
             // Draw department label below the bars, diagonal
             ctx.save();
-            ctx.translate(x + barWidth/2, yOffset + rowHeight + 35); // Pushed down 5px for more space
+            ctx.translate(x + barWidth/2, yOffset + rowHeight + 35); 
             ctx.rotate(-Math.PI/6); 
             ctx.fillStyle="white";
-            ctx.font="20px Fredoka One"; 
+            ctx.font="20px Fredoka One"; // Label font
             ctx.fillText(icons[i % icons.length]+" "+departments[i], 0, 0);
             ctx.restore();
         }
@@ -231,7 +244,7 @@ function drawDepartmentChart(){
     ctx.stroke();
 }
 
-// Tube (with rounded rectangle, gradient animation, and sparkles) - IMPROVED SPACING
+// Tube (with rounded rectangle, gradient animation, and sparkles)
 function drawTube(){
     // Adjusted dimensions: pushed right, slightly less height, better top margin
     const tubeX=850,tubeY=150,tubeWidth=150,tubeHeight=480; 
@@ -249,7 +262,7 @@ function drawTube(){
     ctx.font = "32px Fredoka One"; 
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
-    ctx.fillText("Overall Progress", tubeX + tubeWidth / 2, tubeY - 50); // Pushed up 10px
+    ctx.fillText("Overall Progress", tubeX + tubeWidth / 2, tubeY - 50); 
 
     // Clip to tube
     ctx.save();
@@ -300,7 +313,7 @@ function drawTube(){
     ctx.font="32px Fredoka One"; 
     ctx.fillStyle="white";
     ctx.textAlign="center";
-    ctx.fillText(totalBoxes+" / "+target, tubeX+tubeWidth/2, tubeY+tubeHeight+45); // Pushed down 5px for more space
+    ctx.fillText(totalBoxes+" / "+target, tubeX+tubeWidth/2, tubeY+tubeHeight+45); 
 }
 
 // ---------------- Main Draw Loop ----------------
@@ -348,6 +361,8 @@ function exportGIF(){
 // --- Data Fetcher ---
 async function loadData() {
     try {
+        // Use cache-busting to ensure we always get the LATEST deployed data.json
+        document.getElementById('updateStatus').textContent = "Checking for new data...";
         const response = await fetch('data.json?' + new Date().getTime()); 
         if (!response.ok) throw new Error('Failed to fetch data.json');
         const data = await response.json();
@@ -356,12 +371,16 @@ async function loadData() {
         boxes = data.boxes || [];
         target = data.target || 0;
         
+        // Indicate successful poll
+        document.getElementById('updateStatus').textContent = `Data last checked: ${new Date().toLocaleTimeString()} | Auto-polling every 60s.`;
+
     } catch (error) {
         console.warn('Error loading data.json, using fallback data:', error);
         // Fallback data
         departments = ["HR", "Finance", "Logistics", "Sales", "IT", "Marketing", "Admin", "Customer Service", "Procurement", "R&D"];
         boxes = [120, 95, 160, 180, 140, 100, 80, 110, 70, 90];
         target = 1500;
+        document.getElementById('updateStatus').textContent = `WARNING: Failed to load live data! Using fallback data.`;
     }
 
     totalBoxes = boxes.reduce((a, b) => a + b, 0); // Calculate total
@@ -372,6 +391,12 @@ async function loadData() {
     document.getElementById('targetInput').value = target;
 }
 
+// --- New Polling Function ---
+function startPolling() {
+    // Check for new data every 60 seconds (60000 milliseconds)
+    dataPollingInterval = setInterval(loadData, 60000); 
+}
+
 // --- Initial setup function ---
 async function initializeDashboard() {
     canvas = document.getElementById('dashboardCanvas');
@@ -379,9 +404,11 @@ async function initializeDashboard() {
     
     initSnowflakes();
 
-    await loadData(); // Load data before starting the draw loop
+    await loadData(); // 1. Load data once immediately
     
-    drawDashboard(); 
+    startPolling(); // 2. Start polling for future changes
+    
+    drawDashboard(); // 3. Start animation loop
 }
 
 // Start everything when the page is fully loaded
