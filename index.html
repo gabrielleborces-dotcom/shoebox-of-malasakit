@@ -261,7 +261,8 @@ function drawDepartmentChart(){
 
             // Draw department label below the bars, diagonal
             ctx.save();
-            ctx.translate(x + barWidth/2, yOffset + rowHeight + (isMobile ? 25 : 35)); 
+            // Increased offset to 45 (from 25) on mobile to clear the bar and give space for the diagonal text
+            ctx.translate(x + barWidth/2, yOffset + rowHeight + (isMobile ? 45 : 35)); 
             ctx.rotate(-Math.PI/6); 
             ctx.fillStyle="white";
             ctx.font= isMobile ? "16px Fredoka One" : "20px Fredoka One"; // Label font
@@ -442,12 +443,13 @@ function setupDimensions() {
         // Calculate the height needed for the department chart based on rows (max 3)
         let rows = numDeps > 9 ? 3 : (numDeps > 4 ? 2 : 1);
         
-        // Base height for one row (including title/padding/labels)
-        const rowDisplayHeight = 150; 
+        // Base height for one row (including vertical space for bars, value, and label)
+        // INCREASED to 180 for better spacing between rows and preventing overlap.
+        const rowDisplayHeight = 180; 
         
-        // Calculate Dept Chart height: 50 (title offset) + rows * 150 (row height) + 40 (label space)
+        // Calculate Dept Chart height: rows * rowDisplayHeight
         chartHeight = rows * rowDisplayHeight; 
-        const deptChartTotalHeight = chartHeight + 90; // Add space for title and axis labels
+        const deptChartTotalHeight = chartHeight + 90; // Add space for title (90)
 
         CANVAS_WIDTH = window.innerWidth - 40; // Full width minus padding
         // Set height for stacked view: Dept Chart + Tube Chart + Padding
@@ -514,5 +516,3 @@ window.onload = initializeDashboard;
 </script>
 </body>
 </html>
-
-
