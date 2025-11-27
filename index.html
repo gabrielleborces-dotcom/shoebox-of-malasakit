@@ -443,8 +443,8 @@ function setupDimensions() {
         // Calculate the number of rows (max 3)
         let rows = numDeps > 9 ? 3 : (numDeps > 4 ? 2 : 1);
         
-        // **FIX: Increased rowDisplayHeight from 250 to 320 to prevent label/bar overlap in stacked rows on mobile.**
-        const rowDisplayHeight = 320; 
+        // **FIX: Increased rowDisplayHeight from 320 to 400 to prevent label/bar overlap in stacked rows on mobile.**
+        const rowDisplayHeight = 400; 
         
         // Calculate Dept Chart height: rows * rowDisplayHeight
         chartHeight = rows * rowDisplayHeight; 
@@ -516,3 +516,4 @@ window.onload = initializeDashboard;
 </script>
 </body>
 </html>
+
