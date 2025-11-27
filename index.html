@@ -261,8 +261,7 @@ function drawDepartmentChart(){
 
             // Draw department label below the bars, diagonal
             ctx.save();
-            // Offset decreased to 20. Combined with the increased rowHeight (250 in setupDimensions),
-            // this creates a large vertical gap between the rows.
+            // This is the static offset for the label (distance from bar base)
             ctx.translate(x + barWidth/2, yOffset + rowHeight + (isMobile ? 20 : 35)); 
             ctx.rotate(-Math.PI/6); 
             ctx.fillStyle="white";
@@ -444,9 +443,8 @@ function setupDimensions() {
         // Calculate the number of rows (max 3)
         let rows = numDeps > 9 ? 3 : (numDeps > 4 ? 2 : 1);
         
-        // Base height for one row (including vertical space for bars, value, and label)
-        // Increased to 250 for generous spacing between rows to prevent label overlap.
-        const rowDisplayHeight = 250; 
+        // **FIX: Increased rowDisplayHeight from 250 to 320 to prevent label/bar overlap in stacked rows on mobile.**
+        const rowDisplayHeight = 320; 
         
         // Calculate Dept Chart height: rows * rowDisplayHeight
         chartHeight = rows * rowDisplayHeight; 
@@ -475,6 +473,7 @@ function setupDimensions() {
         chartX = 50; 
         chartY = 150; 
         chartWidth = 750; 
+        // chartHeight remains 480 - this should be sufficient for 2 rows on desktop.
         chartHeight = 480;
         
         tubeX = 850;
